@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    run: ocp-realtime-02cn
+  name: ocp-realtime-02cn
+  namespace: zero-to-cloud-native
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: ocp-realtime-02cn
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: ocp-realtime-02cn
+    spec:
+      imagePullSecrets:
+        - name: all-icr-io
+      containers:
+      - env:
+        - name: LOGDNA_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: LOGDNA_APIKEY
+        - name: LOGDNA_LOGHOST
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: LOGDNA_LOGHOST
+        - name: SERVERNAME
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: SERVERNAME
+        - name: IAM_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: IAM_ENDPOINT
+        - name: ENVIRONMENT
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: ENVIRONMENT
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_CERT_CRN
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: REDIS_CERT_CRN
+        - name: CERT_MANAGER_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: CERT_MANAGER_ENDPOINT
+        - name: IBMCLOUD_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: zero-to-cloud-native-secrets
+              key: IBMCLOUD_APIKEY
+        image: us.icr.io/zero-to-cloud-native/ocp-realtime-02cn:v8
+        name: ocp-realtime-02cn
+        resources:
+          requests:
+            cpu: 300m
+            memory: "64Mi"
+          limits:
+            cpu: 800m
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: ocp-realtime-02cn
+  name: ocp-realtime-02cn-service
+  namespace: zero-to-cloud-native
+spec:
+  ports:
+  - port: 8220
+    protocol: TCP
+    targetPort: 8220
+  selector:
+    run: ocp-realtime-02cn
+  type: ClusterIP
+status:
+  loadBalancer: {}
+        
