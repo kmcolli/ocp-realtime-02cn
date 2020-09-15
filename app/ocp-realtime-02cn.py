@@ -45,40 +45,25 @@ app.config.from_object(Config)
 
 api = Api(app)
 
+
 def getRequestId():
     letters = string.ascii_uppercase
     return ''.join(random.choice(letters) for i in range(6))
 
-def getiamtoken(apikey):
-    app.logger.debug("try getiamtoken")
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic Yng6Yng=',
-    }
-    parms = {"grant_type": "urn:ibm:params:oauth:grant-type:apikey", "apikey": apikey}
-
-    try:
-        resp = requests.post(app.config['IAM_ENDPOINT'] + "/identity/token?" + urllib.parse.urlencode(parms), headers=headers, timeout=30)
-    except:
-        #try twice
-        try:
-            resp = requests.post(app.config['IAM_ENDPOINT'] + "/identity/token?" + urllib.parse.urlencode(parms), headers=headers, timeout=30)
-            resp.raise_for_status()
-        except requests.exceptions.ConnectionError as errc:
-            quit()
-        except requests.exceptions.Timeout as errt:
-            quit()
-        except requests.exceptions.HTTPError as errb:
-            quit()
-
-    iam = resp.json()
-    return iam 
+def getiamtoken():
+    iamhost=os.environ.get("UTILITY_02CN_SERVICE_SERVICE_HOST")
+    iamport=os.environ.get("UTILITY_02CN_SERVICE_SERVICE_PORT")
+    iam_url="http://"+iamhost+":"+iamport+"/api/v1/getiamtoken/"
+    iam_data = { "apikey":  app.config["IBMCLOUD_APIKEY"]}
+    headers = { "Content-Type": "application/json" }
+    resp = requests.get(iam_url, data=json.dumps(iam_data), headers=headers)
+    iamtoken = resp.json()["iamtoken"]
+    return iamtoken 
 
 def getRedisCert(reqid, apikey):
     app.logger.debug("{} Starting to get Redis Certificate ")
     iamToken = getiamtoken(apikey)
     certManagerEndpoint = app.config['CERT_MANAGER_ENDPOINT']
-    app.logger.debug("{} cert manager endpoint {}".format(reqid, certManagerEndpoint))
     header = {
         'accept': 'application/json',
         'Authorization': 'Bearer ' + iamToken["access_token"]
@@ -95,36 +80,34 @@ def getRedisCert(reqid, apikey):
     return
 
 def getClusterServerURL(apikey, clustername):
+    iamToken = getiamtoken(apikey)
     header = {
         'accept': 'application/json',
-        'Authorization': getiamtoken(apikey)["access token"]
+        'Authorization': iamToken["access_token"]
     }
-    response = requests.get('https://containers.cloud.ibm.com/global/v1/clusters/'+str(clustername),headers=header)
+    response = requests.get('https://containers.cloud.ibm.com/global/v2/getCluster?cluster='+str(clustername),headers=header)
     json_response = json.loads(response.text)
-    return json_response['serverURL']
+    return json_response['masterURL']
 
 def getClusterAuthToken(reqid, apikey, clustername):
     app.logger.info("{} Starting to get cluster auth token ".format(reqid))
     masterURL = getClusterServerURL(apikey, clustername)
-    app.logger.info("{} Master URL = {}".format(reqid, masterURL))
+    app.logger.debug("{} Master URL = {}".format(reqid, masterURL))
     response = requests.get(masterURL+'/.well-known/oauth-authorization-server')
     json_response = json.loads(response.text)
     authorization_endpoint = json_response['authorization_endpoint']
-    app.logger.debug("{} authorization endpoint = {}".format(reqid, authorization_endpoint))
     curlCommand = "curl -u 'apikey:" + apikey +"' -H 'X-CSRF-Token: a' "+ authorization_endpoint + "'?client_id=openshift-challenging-client&response_type=token' -vvv"
     output = subprocess.getstatusoutput(curlCommand)
     str_output = json.dumps(output)
-    app.logger.debug("{} output for getting token = {}".format(reqid, str_output))
     accessTokenIndex = str_output.find('access_token')
     expiresInIndex = str_output.find('expires_in')
     auth_token = str_output[accessTokenIndex+13:(expiresInIndex - 1)]
-    return auth_token
+    return auth_token, masterURL
 
 def getOCPVersions(reqid):
     return_versions = []
     try:
         app.logger.info("{} Going to get versions of openshift".format(reqid))
-        # getRedisCert(reqid, app.config["IBMCLOUD_APIKEY"])
         r = redis.StrictRedis(
             host=app.config['REDIS_HOST'], 
             port=app.config['REDIS_PORT'], 
@@ -145,7 +128,6 @@ class GetOCPToken(Resource):
     def get(self):
         try:
             input_json_data = request.get_json()
-            app.logger.debug("get OCP input json data {}".format(input_json_data))
             if "reqid" in input_json_data:
                 reqid = input_json_data['reqid']
             else:
@@ -155,12 +137,10 @@ class GetOCPToken(Resource):
             apikey=input_json_data['apikey']
             clustername=input_json_data['clustername']
             
-            authToken = getClusterAuthToken(reqid, apikey, clustername)
-            server = getClusterServerURL(apikey, clustername)
-            app.logger.debug("{} Got this ocp token {}".format(reqid, authToken))
-            app.logger.debug("{} Got this as the server url {}".format(reqid, server))
+            authToken, server = getClusterAuthToken(reqid, apikey, clustername)
+            app.logger.debug("{} authToken = {}".format(reqid, authToken))
             return {
-                "Status":"Successfully retrieved ocp token for request id"+reqid,
+                "Status":"Successfully retrieved ocp token for request id "+reqid,
                 "token": authToken,
                 "server": server
             }
@@ -174,7 +154,6 @@ class GetOCPVersions(Resource):
     def get(self):
         try:
             input_json_data = request.get_json()
-            app.logger.debug("get OCP input json data {}".format(input_json_data))
             if "reqid" in input_json_data:
                 reqid = input_json_data['reqid']
             else:
