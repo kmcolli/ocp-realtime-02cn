@@ -81,7 +81,7 @@ spec:
             secretKeyRef:
               name: zero-to-cloud-native-secrets
               key: IBMCLOUD_APIKEY
-        image: us.icr.io/zero-to-cloud-native/ocp-realtime-02cn:v15
+        image: %s
         name: ocp-realtime-02cn
         resources:
           requests:
