@@ -5,12 +5,10 @@ RUN apt-get update && apt-get install -y apt-transport-https python3.6 python3-p
 RUN curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
 RUN ibmcloud config --check-version=false
 WORKDIR /app
-
 COPY . .
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 ENV FLASK_APP=ocp-realtime-02cn.py
 EXPOSE 8220
-
 ENTRYPOINT [ "python3" ]
 CMD [ "app/ocp-realtime-02cn.py" ]
