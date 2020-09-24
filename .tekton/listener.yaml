@@ -25,6 +25,8 @@ spec:
     - name: clusterNamespace
       description: The Kubernetes cluster namespace
       default: prod
+    - name: imageName
+      description: Name of the image
   resourcetemplates:
     - apiVersion: v1
       kind: PersistentVolumeClaim
