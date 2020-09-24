@@ -50,11 +50,11 @@ def getRequestId():
     letters = string.ascii_uppercase
     return ''.join(random.choice(letters) for i in range(6))
 
-def getiamtoken():
+def getiamtoken(apikey):
     iamhost=os.environ.get("UTILITY_02CN_SERVICE_SERVICE_HOST")
     iamport=os.environ.get("UTILITY_02CN_SERVICE_SERVICE_PORT")
     iam_url="http://"+iamhost+":"+iamport+"/api/v1/getiamtoken/"
-    iam_data = { "apikey":  app.config["IBMCLOUD_APIKEY"]}
+    iam_data = { "apikey":  apikey}
     headers = { "Content-Type": "application/json" }
     resp = requests.get(iam_url, data=json.dumps(iam_data), headers=headers)
     iamtoken = resp.json()["iamtoken"]
@@ -175,7 +175,7 @@ class GetOCPVersions(Resource):
 
 api.add_resource(GetOCPVersions, '/api/v1/getOCPVersions/')
 api.add_resource(GetOCPToken, '/api/v1/getOCPToken/')
-getRedisCert("START-OCP-REALTIME ", app.config["IBMCLOUD_APIKEY"])
 
 if __name__ == '__main__':
+    getRedisCert("START-OCP-REALTIME ", app.config["IBMCLOUD_APIKEY"])
     app.run(host=HOST, port=PORT, threaded=True, debug=True)

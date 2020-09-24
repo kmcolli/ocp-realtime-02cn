@@ -40,7 +40,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: zero-to-cloud-native-secrets
-              key: SERVERNAME
+              key: API_SERVERNAME
         - name: IAM_ENDPOINT
           valueFrom:
             secretKeyRef:
@@ -81,7 +81,7 @@ spec:
             secretKeyRef:
               name: zero-to-cloud-native-secrets
               key: IBMCLOUD_APIKEY
-        image: us.icr.io/zero-to-cloud-native/ocp-realtime-02cn:v12
+        image: us.icr.io/zero-to-cloud-native/ocp-realtime-02cn:v15
         name: ocp-realtime-02cn
         resources:
           requests:
