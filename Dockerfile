@@ -11,4 +11,5 @@ RUN pip3 install -r requirements.txt
 ENV FLASK_APP=ocp-realtime-02cn.py
 EXPOSE 8220
 ENTRYPOINT [ "python3" ]
+
 CMD [ "app/ocp-realtime-02cn.py" ]
