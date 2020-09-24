@@ -69,6 +69,8 @@ spec:
           value: $(params.clusterNamespace)
         - name: deploymentFile
           value: $(params.deploymentFile)
+        - name: imageName
+          value: $(params.imageName)
 ---
 apiVersion: tekton.dev/v1beta1
 kind: TriggerBinding
